@@ -79,7 +79,13 @@ async function handleSubmit() {
     message.success('登录成功');
     router.push('/');
   } catch (e: any) {
-    message.error(e.response?.data?.error || '登录失败');
+    if (!e?.response) {
+      message.error('无法连接后端服务，请检查服务状态后重试');
+    } else if (e.response.status === 400 || e.response.status === 401) {
+      message.error(e.response?.data?.error || '用户名或密码错误');
+    } else {
+      message.error(e.response?.data?.error || '登录失败');
+    }
   } finally {
     loading.value = false;
   }

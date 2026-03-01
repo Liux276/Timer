@@ -8,9 +8,9 @@
         >
           <AppIcon name="settings" :size="26" color="var(--color-error)" />
         </div>
-        <h1 class="text-h2" style="color: var(--color-text-primary)">初始化状态不可用</h1>
+        <h1 class="text-h2" style="color: var(--color-text-primary)">服务暂不可用</h1>
         <p class="text-caption mt-2">
-          无法从服务器获取系统初始化状态，请检查后端服务和反向代理后重试。
+          无法从服务器获取初始化/会话状态，请检查后端服务和反向代理后重试。
         </p>
       </div>
 

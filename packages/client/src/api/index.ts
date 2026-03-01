@@ -13,6 +13,17 @@ import type {
 } from '@/types';
 import axios from 'axios';
 
+interface ApiAuthHandlers {
+  onUnauthorized?: () => void;
+  onNetworkError?: () => void;
+}
+
+let authHandlers: ApiAuthHandlers = {};
+
+export function setApiAuthHandlers(handlers: ApiAuthHandlers): void {
+  authHandlers = handlers;
+}
+
 const api = axios.create({
   baseURL: '/api',
   timeout: 30000,
@@ -32,10 +43,26 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      authHandlers.onUnauthorized?.();
+      // Fallback: still clear local storage even if handler is not registered yet.
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      if (router.currentRoute.value.name !== 'login' && router.currentRoute.value.name !== 'setup') {
+      if (
+        router.currentRoute.value.name !== 'login'
+        && router.currentRoute.value.name !== 'setup'
+        && router.currentRoute.value.name !== 'setup-status-error'
+      ) {
         router.push('/login');
+      }
+    } else if (!error.response) {
+      authHandlers.onNetworkError?.();
+      const routeName = String(router.currentRoute.value.name || '');
+      const isPublicAuthPage = routeName === 'login' || routeName === 'setup' || routeName === 'setup-status-error';
+      if (!isPublicAuthPage) {
+        router.push({
+          name: 'setup-status-error',
+          query: { redirect: router.currentRoute.value.fullPath },
+        });
       }
     }
     return Promise.reject(error);

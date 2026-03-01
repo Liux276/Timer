@@ -34,8 +34,8 @@ sudo apt-get install -y build-essential python3 make g++
 
 ```bash
 # 克隆项目
-git clone <repo-url> time
-cd time
+git clone <repo-url> Time
+cd Time
 
 # 安装所有依赖（前后端一次完成）
 pnpm install
@@ -70,7 +70,7 @@ pnpm dev:server   # 后端: http://localhost:3000
 pnpm dev:client   # 前端: http://localhost:5173
 ```
 
-首次启动后端时，SQLite 数据库文件 `packages/server/data/time.db` 会自动创建并初始化表结构。
+首次启动后端时，SQLite 数据库文件 `packages/server/data/Time.db` 会自动创建并初始化表结构。
 
 **首次使用时**，访问前端页面会自动跳转到系统初始化页面（`/setup`），需创建第一个管理员账户。此后该页面将不可再访问。普通用户由管理员在「管理 → 用户管理」页面创建，注册功能已关闭。
 
@@ -101,10 +101,10 @@ JWT_SECRET=your-production-secret node dist/index.js
 
 ```bash
 # 仅检测，不落库
-pnpm --filter @time/server clean:iterations:dry-run -- --db /path/to/time.db.bak
+pnpm --filter @Time/server clean:iterations:dry-run -- --db /path/to/Time.db.bak
 
 # 执行清理
-pnpm --filter @time/server clean:iterations:apply -- --db /path/to/time.db.bak
+pnpm --filter @Time/server clean:iterations:apply -- --db /path/to/Time.db.bak
 ```
 
 清理规则：
@@ -156,7 +156,7 @@ pnpm --filter @time/server clean:iterations:apply -- --db /path/to/time.db.bak
 - 可配置 WebDAV 服务器地址、凭据、备份间隔
 - 使用 `VACUUM INTO` 无锁备份，不影响正常读写
 - 支持手动触发备份和从远端恢复
-- 备份文件命名规则：`time_backup_YYYYMMDD_HHmmss.db`
+- 备份文件命名规则：`Time_backup_YYYYMMDD_HHmmss.db`
 
 ### 安全
 
@@ -173,7 +173,7 @@ pnpm --filter @time/server clean:iterations:apply -- --db /path/to/time.db.bak
 ## 项目结构
 
 ```
-time/
+Time/
 ├── packages/
 │   ├── client/                    # Vue 3 前端
 │   │   ├── src/

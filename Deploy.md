@@ -77,6 +77,11 @@ your-domain.com {
     file_server
 
     reverse_proxy /api/* 127.0.0.1:3000
+
+    # 禁止浏览器/CDN 缓存 Service Worker 文件，确保每次拉取最新版本
+    @sw path /sw.js /workbox-*.js
+    header @sw Cache-Control "no-cache, no-store, must-revalidate"
+
     # 强制仅使用 TLS-ALPN-01（443）申请证书，不走 HTTP-01（80）
     tls {
         issuer acme {
@@ -108,6 +113,12 @@ your-domain.com {
 
 创建 `/etc/systemd/system/time-server.service`：
 
+生成随机密钥：
+
+```bash
+openssl rand -hex 32
+```
+
 ```ini
 [Unit]
 Description=Time Task Manager API
@@ -129,12 +140,6 @@ RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
-```
-
-生成随机密钥：
-
-```bash
-openssl rand -hex 32
 ```
 
 ## 6. 启动服务
@@ -210,4 +215,28 @@ curl -s https://your-domain.com/api/auth/setup-status
 cd /home/<your-linux-user>/Time
 pnpm --filter @time/server clean:iterations:dry-run -- --db /path/to/time.db.bak
 pnpm --filter @time/server clean:iterations:apply -- --db /path/to/time.db.bak
+```
+
+## 11. 前端更新后浏览器仍显示旧版本
+
+本项目启用了 PWA（Service Worker），浏览器会 precache 所有静态资源。部署新前端后，旧 SW 仍从本地缓存返回内容，导致看起来"没有更新"。
+
+**已内置的自动修复机制：**
+
+- `vite.config.ts` 中配置了 `skipWaiting: true` + `clientsClaim: true`，新 SW 安装后会立即激活并接管页面
+- Caddyfile 中对 `sw.js` / `workbox-*.js` 设置了 `Cache-Control: no-cache`，确保浏览器每次都从服务器拉取最新 SW 文件
+
+正常情况下，用户刷新页面即可获取最新版本。
+
+**若仍未更新，用户侧临时解决：**
+
+- 硬刷新：`Ctrl + Shift + R`（强制跳过缓存）
+- 或打开 DevTools → Application → Service Workers → 点击 **Unregister**，然后刷新页面
+
+**部署侧验证：**
+
+```bash
+# 确认 SW 文件的 Cache-Control header 正确
+curl -I https://your-domain.com/sw.js | grep -i cache-control
+# 预期输出：Cache-Control: no-cache, no-store, must-revalidate
 ```

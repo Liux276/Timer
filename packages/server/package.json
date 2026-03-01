@@ -27,7 +27,6 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^3.0.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",

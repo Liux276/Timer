@@ -1,9 +1,11 @@
 import { authApi } from '@/api';
+import { useAuthStore } from '@/stores/authStore';
 import { createRouter, createWebHistory } from 'vue-router';
 
-// Cache setup status to avoid repeated API calls
+// Cache setup status briefly to avoid duplicate requests during rapid navigation.
 let setupStatusCache: boolean | null = null;
-let setupStatusLoaded = false;
+let setupStatusCheckedAt: number | null = null;
+const SETUP_STATUS_TTL_MS = 5000;
 const SETUP_STATUS_MAX_RETRIES = 3;
 const SETUP_STATUS_RETRY_DELAY_MS = 300;
 
@@ -12,13 +14,19 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function checkNeedsSetup(): Promise<boolean | null> {
-  if (setupStatusLoaded) return setupStatusCache;
+  if (
+    setupStatusCache !== null
+    && setupStatusCheckedAt !== null
+    && Date.now() - setupStatusCheckedAt < SETUP_STATUS_TTL_MS
+  ) {
+    return setupStatusCache;
+  }
 
   for (let i = 0; i < SETUP_STATUS_MAX_RETRIES; i++) {
     try {
       const { data } = await authApi.setupStatus();
       setupStatusCache = data.needsSetup;
-      setupStatusLoaded = true;
+      setupStatusCheckedAt = Date.now();
       return data.needsSetup;
     } catch {
       if (i < SETUP_STATUS_MAX_RETRIES - 1) {
@@ -34,7 +42,7 @@ async function checkNeedsSetup(): Promise<boolean | null> {
 /** Call after first admin is created to clear the cache */
 export function clearSetupCache(): void {
   setupStatusCache = null;
-  setupStatusLoaded = false;
+  setupStatusCheckedAt = null;
 }
 
 const router = createRouter({
@@ -106,8 +114,18 @@ const router = createRouter({
   ],
 });
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('focus', clearSetupCache);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      clearSetupCache();
+    }
+  });
+}
+
 // Auth guard
 router.beforeEach(async (to) => {
+  const authStore = useAuthStore();
   const needsSetup = await checkNeedsSetup();
 
   if (needsSetup === null) {
@@ -135,17 +153,32 @@ router.beforeEach(async (to) => {
   }
 
   const isPublic = to.meta.public === true;
-  const token = localStorage.getItem('token');
 
-  if (!isPublic && !token) {
+  if (isPublic) {
+    if (to.name === 'login') {
+      const status = await authStore.ensureSession();
+      if (status === 'authenticated') {
+        return { path: '/' };
+      }
+    }
+    return true;
+  }
+
+  const sessionStatus = await authStore.ensureSession();
+
+  if (sessionStatus === 'unauthenticated') {
     return { name: 'login' };
   }
-  if (to.name === 'login' && token) {
-    return { path: '/' };
+
+  if (sessionStatus === 'server_unreachable') {
+    return {
+      name: 'setup-status-error',
+      query: { redirect: to.fullPath },
+    };
   }
 
   // Admin route guard
-  if (to.meta.admin === true && token) {
+  if (to.meta.admin === true) {
     try {
       const saved = localStorage.getItem('user');
       const user = saved ? JSON.parse(saved) : null;

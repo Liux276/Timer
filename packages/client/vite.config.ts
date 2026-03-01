@@ -9,6 +9,18 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico'],
+      workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [
+          {
+            urlPattern: /^\/api\/.*$/i,
+            handler: 'NetworkOnly',
+            method: 'GET',
+          },
+        ],
+      },
       manifest: {
         name: '任务管理',
         short_name: '任务',
