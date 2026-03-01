@@ -4,7 +4,11 @@
   "private": true,
   "description": "个人任务日程管理系统",
   "pnpm": {
-    "onlyBuiltDependencies": ["better-sqlite3", "esbuild", "vue-demi"]
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild",
+      "vue-demi"
+    ]
   },
   "scripts": {
     "dev": "pnpm -r --parallel dev",
@@ -16,5 +20,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "codex": "^0.2.3"
   }
 }

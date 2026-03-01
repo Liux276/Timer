@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && mkdir -p dist/db && cp src/db/schema.sql dist/db/schema.sql",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "clean:iterations:dry-run": "tsx scripts/cleanInvalidIterations.ts --dry-run",
+    "clean:iterations:apply": "tsx scripts/cleanInvalidIterations.ts --apply"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

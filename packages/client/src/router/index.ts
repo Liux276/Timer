@@ -3,21 +3,38 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 // Cache setup status to avoid repeated API calls
 let setupStatusCache: boolean | null = null;
+let setupStatusLoaded = false;
+const SETUP_STATUS_MAX_RETRIES = 3;
+const SETUP_STATUS_RETRY_DELAY_MS = 300;
 
-async function checkNeedsSetup(): Promise<boolean> {
-  if (setupStatusCache !== null) return setupStatusCache;
-  try {
-    const { data } = await authApi.setupStatus();
-    setupStatusCache = data.needsSetup;
-    return data.needsSetup;
-  } catch {
-    return false;
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function checkNeedsSetup(): Promise<boolean | null> {
+  if (setupStatusLoaded) return setupStatusCache;
+
+  for (let i = 0; i < SETUP_STATUS_MAX_RETRIES; i++) {
+    try {
+      const { data } = await authApi.setupStatus();
+      setupStatusCache = data.needsSetup;
+      setupStatusLoaded = true;
+      return data.needsSetup;
+    } catch {
+      if (i < SETUP_STATUS_MAX_RETRIES - 1) {
+        await sleep(SETUP_STATUS_RETRY_DELAY_MS);
+      }
+    }
   }
+
+  // Unknown status: do not fall back to "already set up".
+  return null;
 }
 
 /** Call after first admin is created to clear the cache */
 export function clearSetupCache(): void {
   setupStatusCache = null;
+  setupStatusLoaded = false;
 }
 
 const router = createRouter({
@@ -33,6 +50,12 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
+      meta: { public: true },
+    },
+    {
+      path: '/setup-status-error',
+      name: 'setup-status-error',
+      component: () => import('@/views/SetupStatusErrorView.vue'),
       meta: { public: true },
     },
     {
@@ -86,6 +109,21 @@ const router = createRouter({
 // Auth guard
 router.beforeEach(async (to) => {
   const needsSetup = await checkNeedsSetup();
+
+  if (needsSetup === null) {
+    if (to.name === 'setup-status-error') {
+      return true;
+    }
+    return {
+      name: 'setup-status-error',
+      query: { redirect: to.fullPath },
+    };
+  }
+
+  if (to.name === 'setup-status-error') {
+    const redirectTarget = typeof to.query.redirect === 'string' ? to.query.redirect : '/';
+    return { path: redirectTarget };
+  }
 
   // If system needs initial setup, redirect everywhere to /setup
   if (needsSetup && to.name !== 'setup') {

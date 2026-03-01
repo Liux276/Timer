@@ -1,5 +1,5 @@
 import app from './app.js';
-import { closeDb, getDb } from './db/index.js';
+import { closeDb, getDb, getDbPath } from './db/index.js';
 import { scheduleBackup } from './services/backupService.js';
 
 const PORT = process.env.PORT || 3000;
@@ -8,6 +8,7 @@ const HOST = process.env.HOST || '127.0.0.1';
 // Initialize database
 getDb();
 console.log('[DB] Database initialized');
+console.log(`[DB] Database path: ${getDbPath()}`);
 
 // Schedule WebDAV backup
 scheduleBackup();

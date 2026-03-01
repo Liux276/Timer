@@ -95,6 +95,23 @@ JWT_SECRET=your-production-secret node dist/index.js
 
 前端构建产物为静态文件（`packages/client/dist/`），可部署到任意静态文件服务器（Nginx、Caddy 等）。
 
+### 旧库离线清理无效迭代（备份库）
+
+当历史数据库中存在异常迭代数据时，可对备份库离线清理（不影响在线库）：
+
+```bash
+# 仅检测，不落库
+pnpm --filter @time/server clean:iterations:dry-run -- --db /path/to/time.db.bak
+
+# 执行清理
+pnpm --filter @time/server clean:iterations:apply -- --db /path/to/time.db.bak
+```
+
+清理规则：
+- `name` 为空
+- `planned_end < planned_start`
+- `user_id` 对应用户不存在
+
 ---
 
 ## 功能概览
